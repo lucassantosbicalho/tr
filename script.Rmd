@@ -1,0 +1,129 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+# Contexto dos dados
+Os dados são sobre queimadas 
+link: https://archive.ics.uci.edu/ml/datasets/Forest+Fires.
+
+   1. X - x-axis spatial coordinate within the Montesinho park map: 1 to 9
+   2. Y - y-axis spatial coordinate within the Montesinho park map: 2 to 9
+   3. month - month of the year: "jan" to "dec" 
+   4. day - day of the week: "mon" to "sun"
+   5. FFMC - FFMC index from the FWI system: 18.7 to 96.20
+   6. DMC - DMC index from the FWI system: 1.1 to 291.3 
+   7. DC - DC index from the FWI system: 7.9 to 860.6 
+   8. ISI - ISI index from the FWI system: 0.0 to 56.10
+   9. temp - temperature in Celsius degrees: 2.2 to 33.30
+   10. RH - relative humidity in %: 15.0 to 100
+   11. wind - wind speed in km/h: 0.40 to 9.40 
+   12. rain - outside rain in mm/m2 : 0.0 to 6.4 
+   13. area - the burned area of the forest (in ha): 0.00 to 1090.84 
+   (this output variable is very skewed towards 0.0, thus it may make
+    sense to model with the logarithm transform). 
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(fields)
+library(tidyverse)
+library(broom)
+```
+
+
+# Análise descritiva
+
+O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados.
+
+
+```{r, echo=TRUE, include=TRUE}
+
+x = dados$X
+y = dados$Y
+x.un = sort(unique(x))
+y.un = sort(unique(y))
+plot.resp = rep(0,length(x.un)*length(y.un))
+sweep = 0
+months = dados$month %>% unique()
+
+for(i in x.un){
+  for(j in y.un){
+    sweep = sweep + 1
+    plot.resp[sweep] = mean(dados$area[x == i & y == j])
+  }
+}
+
+plot.resp.mat = matrix(plot.resp,nrow=length(x.un),ncol=length(y.un),byrow=T)
+grid.list = list(x = x.un,y=y.un,z = plot.resp.mat)
+image.plot(grid.list, main = "Média de área queimada")
+
+
+
+
+```
+
+
+O interesse é modelar áreas que foram queimadas. Analisando o conjunto de dados, notamos que `r round(prop.table(table(dados$isBurned))[1]*100,2)`% é de área não queimada.
+
+Sendo assim, iremos filtrar nosso conjunto de dados selecionando apenas os registros que a coluna **area > 0**.
+
+Outra alternativa seria aplicar alguma transformação na variável resposta, como um log por exemplo. **ainda n coloquei este cenário (log de area) no código**
+
+```{r echo=T, message=FALSE, warning=FALSE, prompt=T}
+dados <- read.csv("forestfires.csv")
+dados$isBurned <- ifelse(dados$area == 0 , 0 , 1)
+dados %>%
+  filter(., area > 0) -> burnedArea
+
+tempdat <- dados
+
+```
+
+# Forward Regression
+
+```{r echo=TRUE, include=T}
+
+minimal.model = lm(area ~ 1, data = tempdat)
+forward.model = MASS::stepAIC(minimal.model,
+                               scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
+                              direction="forward",trace = TRUE)  
+  
+tidy(forward.model)
+print(forward.model)
+  
+
+```
+
+
+
+# Backward Regression
+
+
+```{r echo=TRUE}
+
+full.model = lm(area ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain, data = tempdat)
+backward.model = MASS::stepAIC(full.model, 
+                                scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
+                               direction="backward",trace = TRUE)  
+  
+
+backward.model
+  
+
+```
+
+# Stepwise Regression
+
+
+```{r echo=TRUE}
+
+initial.model = lm(area ~ 1, data = tempdat)
+stepwise.model = MASS::stepAIC(initial.model, 
+                                scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
+                               direction="both",trace = TRUE)  
+# tidy(stepwise.model)
+stepwise.model
+  
+
+```
