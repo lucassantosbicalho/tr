@@ -29,8 +29,25 @@ library(dplyr)
 library(fields)
 library(tidyverse)
 library(broom)
+library(corrplot)
+
 dados <- read.csv("forestfires.csv")
 dados$isBurned <- ifelse(dados$area == 0 , 0 , 1)
+dados$lnArea <- log(dados$area + 1)
+
+dados$damage_category <- ifelse(dados$area == 0, 'Sem dano', 
+                                ifelse(dados$area <= 1, 'Baixo',
+                                       ifelse(dados$area <= 25, 'Moderado', 
+                                              ifelse(dados$area <= 100, 'Alto', 'Muito alto'))))
+dados$month_c <- as.numeric(dados$month)
+dados$day_c <- as.numeric(dados$day)
+
+dados %>%
+   mutate_at(scale, .vars = vars(-isBurned, -damage_category, -month, -day)) -> zDados
+
+
+
+
 ```
 
 
@@ -55,11 +72,24 @@ for(i in x.un){
     plot.resp[sweep] = mean(dados$area[x == i & y == j])
   }
 }
-
 plot.resp.mat = matrix(plot.resp,nrow=length(x.un),ncol=length(y.un),byrow=T)
 grid.list = list(x = x.un,y=y.un,z = plot.resp.mat)
 image.plot(grid.list, main = "Média de área queimada")
 
+
+
+
+```
+
+# Análise exploratória
+
+```{r}
+
+dados %>%
+   select(-isBurned, -damage_category, -month, -day) %>% 
+   cor() -> cor_dados
+corrplot(cor_dados, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
 
 
 ```
@@ -73,8 +103,8 @@ Outra alternativa seria aplicar alguma transformação na variável resposta, co
 
 ```{r echo=T, message=FALSE, warning=FALSE, prompt=T}
 
-dados %>%
-  filter(., area > 0) -> burnedArea
+dados%>%
+   filter(isBurned==1) -> burnedArea
 
 tempdat <- dados
 
@@ -84,14 +114,79 @@ tempdat <- dados
 
 ```{r echo=TRUE, include=T}
 
-minimal.model = lm(area ~ 1, data = tempdat)
-forward.model = MASS::stepAIC(minimal.model,
-                               scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
-                              direction="forward",trace = TRUE)  
-  
-tidy(forward.model)
-print(forward.model)
-  
+# minimal.model = lm(lnArea ~ 1, data = tempdat)
+# forward.model = MASS::stepAIC(minimal.model,
+#                                scope = list(upper = ~ X + Y + month + temp + RH  + rain + wind,  lower = ~1),
+#                               direction="forward",trace = TRUE)  
+# summary(forward.model)
+# 
+# forward.model2 = MASS::stepAIC(minimal.model,
+#                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
+#                               direction="forward",trace = TRUE)  
+# 
+# 
+
+
+```
+
+
+# Teste
+
+```{r, echo=F, prompt=F}
+
+rsquared <- data.frame(back = NA, forw = NA, step = NA)
+cota <- 0.05617002
+rsq <- NA
+
+models1 <- list()
+summaryModel1 <- list()
+
+models2 <- list()
+summaryModel2 <- list()
+
+models3 <- list()
+summaryModel3 <- list()
+
+for(i in 1:1000000){
+   set.seed(i)
+   id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
+   sampDados <- dados[id,]   
+   minimal.model = lm(lnArea ~ 1, data = sampDados)
+   forward.model =  MASS::stepAIC(minimal.model,
+                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+                                           lower = ~1),
+                              direction="forward",trace = TRUE)
+   full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
+   backward.model = MASS::stepAIC(full.model, 
+                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+                                             lower = ~1),
+                               direction="backward",trace = TRUE)  
+   initial.model = lm(lnArea ~ 1, data = sampDados)
+   stepwise.model = MASS::stepAIC(initial.model, 
+                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  
+                                             lower = ~ 1),
+                               direction="both",trace = TRUE) 
+   
+   model1 <- summary(backward.model)
+   model2 <- summary(forward.model)
+   model3 <- summary(stepwise.model)
+   
+   rsquared[i,1] <- model1$r.squared
+   rsquared[i,2] <- model2$r.squared
+   rsquared[i,3] <- model3$r.squared
+   models1[[i]] <- backward.model
+   models2[[i]] <- forward.model
+   models3[[i]] <- stepwise.model
+   summaryModel1[[i]] <- model1
+   summaryModel2[[i]] <- model2
+   summaryModel3[[i]] <- model3
+}
+
+par(mfrow=c(3,1))
+plot(rsquared$back, t = "l", ylim = c(0,1))
+plot(rsquared$forw, t = "l", ylim = c(0,1))
+plot(rsquared$step, t = "l", ylim = c(0,1))
+
 
 ```
 
@@ -102,15 +197,20 @@ print(forward.model)
 
 ```{r echo=TRUE}
 
-full.model = lm(area ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain, data = tempdat)
-backward.model = MASS::stepAIC(full.model, 
-                                scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
-                               direction="backward",trace = TRUE)  
-  
-
-backward.model
-  
-
+# full.model = lm(lnArea ~ X + Y + month + day + temp + RH + wind + rain, data = tempdat)
+# backward.model = MASS::stepAIC(full.model, 
+#                                 scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
+#                                direction="backward",trace = TRUE)  
+#   
+# 
+# summary(backward.model)
+#   
+# backward.model2 = MASS::stepAIC(full.model, 
+#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
+#                                direction="backward",trace = TRUE)  
+#   
+# 
+# summary(backward.model2)
 ```
 
 # Stepwise Regression
@@ -118,12 +218,15 @@ backward.model
 
 ```{r echo=TRUE}
 
-initial.model = lm(area ~ 1, data = tempdat)
-stepwise.model = MASS::stepAIC(initial.model, 
-                                scope = list(upper = ~ X + Y + month + day + FFMC + DMC + DC + ISI + temp + RH + wind + rain,  lower = ~1),
-                               direction="both",trace = TRUE)  
-# tidy(stepwise.model)
-stepwise.model
-  
+# initial.model = lm(lnArea ~ 1, data = tempdat)
+# stepwise.model = MASS::stepAIC(initial.model, 
+#                                 scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
+#                                direction="both",trace = TRUE)  
+# # tidy(stepwise.model)initial.model = lm(lnArea ~ 1, data = tempdat)
+# stepwise.model2 = MASS::stepAIC(initial.model, 
+#                                 scope = list(upper = ~  temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
+#                                direction="both",trace = TRUE)  
+# summary(stepwise.model)
+# summary(stepwise.model2)  
 
 ```
