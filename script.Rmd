@@ -29,6 +29,8 @@ library(dplyr)
 library(fields)
 library(tidyverse)
 library(broom)
+dados <- read.csv("forestfires.csv")
+dados$isBurned <- ifelse(dados$area == 0 , 0 , 1)
 ```
 
 
@@ -60,7 +62,6 @@ image.plot(grid.list, main = "Média de área queimada")
 
 
 
-
 ```
 
 
@@ -71,8 +72,7 @@ Sendo assim, iremos filtrar nosso conjunto de dados selecionando apenas os regis
 Outra alternativa seria aplicar alguma transformação na variável resposta, como um log por exemplo. **ainda n coloquei este cenário (log de area) no código**
 
 ```{r echo=T, message=FALSE, warning=FALSE, prompt=T}
-dados <- read.csv("forestfires.csv")
-dados$isBurned <- ifelse(dados$area == 0 , 0 , 1)
+
 dados %>%
   filter(., area > 0) -> burnedArea
 
