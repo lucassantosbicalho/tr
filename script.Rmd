@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
@@ -30,20 +32,32 @@ library(fields)
 library(tidyverse)
 library(broom)
 library(corrplot)
+library(ggplot2)
+
+months <- 1:12
+months_ <- c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec')
+names(months) <- months_
+
+days <- 1:7
+days_ <-c ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
+names(days) <- days_
 
 dados <- read.csv("forestfires.csv")
 dados$isBurned <- ifelse(dados$area == 0 , 0 , 1)
 dados$lnArea <- log(dados$area + 1)
 
-dados$damage_category <- ifelse(dados$area == 0, 'Sem dano', 
-                                ifelse(dados$area <= 1, 'Baixo',
-                                       ifelse(dados$area <= 25, 'Moderado', 
-                                              ifelse(dados$area <= 100, 'Alto', 'Muito alto'))))
-dados$month_c <- as.numeric(dados$month)
-dados$day_c <- as.numeric(dados$day)
+dados$month <- as.character(dados$month)
+dados$month_c <- unname(months[dados$month])
+dados$day <- as.character(dados$day)
+dados$day_c <- unname(days[dados$day])
 
+dados$id <- 1:nrow(dados)
 dados %>%
-   mutate_at(scale, .vars = vars(-isBurned, -damage_category, -month, -day)) -> zDados
+  arrange(month_c) %>%
+  mutate(idm = 1:nrow(dados)) -> dados
+dados %>%
+  arrange(day_c) %>%
+  mutate(idd = 1:nrow(dados)) -> dados
 
 
 
@@ -53,7 +67,7 @@ dados %>%
 
 # Análise descritiva
 
-O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados.
+O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados. 
 
 
 ```{r, echo=TRUE, include=TRUE}
@@ -61,7 +75,7 @@ O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://dar
 x = dados$X
 y = dados$Y
 x.un = sort(unique(x))
-y.un = sort(unique(y))
+y.un = 1:9
 plot.resp = rep(0,length(x.un)*length(y.un))
 sweep = 0
 months = dados$month %>% unique()
@@ -72,8 +86,9 @@ for(i in x.un){
     plot.resp[sweep] = mean(dados$area[x == i & y == j])
   }
 }
+par(xpd=TRUE)
 plot.resp.mat = matrix(plot.resp,nrow=length(x.un),ncol=length(y.un),byrow=T)
-grid.list = list(x = x.un,y=y.un,z = plot.resp.mat)
+grid.list = list(x = x.un,y=1:9,z = plot.resp.mat)
 image.plot(grid.list, main = "Média de área queimada")
 
 
@@ -81,114 +96,123 @@ image.plot(grid.list, main = "Média de área queimada")
 
 ```
 
+Notamos que há áreas com maior média de queimada, o que indica que a localização X, Y pode ser um fator relevante na variável área queimada. É importante notar que os quadrantes que estão em branco, como por exemplo o (2, 8) não significam que não houve queimada, mas sim que são áreas que não fazem parte do conjunto de dados analisado.
 # Análise exploratória
 
-```{r}
+```{r, echo=TRUE, include=TRUE}
+(prop.table(table(dados$isBurned)))
+
+```
+
+Veja que 47,77% dos registros no conjunto de dados são de áreas que não foram queimadas. 
+
+```{r, echo=TRUE, include=TRUE}
 
 dados %>%
-   select(-isBurned, -damage_category, -month, -day) %>% 
-   cor() -> cor_dados
+  ggplot(., aes(x=area)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573", title="a") +
+  labs(title="Histogram of area")
+  
+
+dados %>%
+  ggplot(., aes(x=lnArea)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of ln(area + 1)")
+  
+
+dados %>%
+  ggplot(., aes(x=reorder(month, idm))) +
+  geom_bar(colour="#566573", fill="#566573")  +
+  labs(title="Barplot of month")
+
+dados %>%
+  ggplot(., aes(x=reorder(day, idd))) +
+  geom_bar(colour="#566573", fill="#566573")  +
+  labs(title="Barplot of day")
+
+
+dados %>%
+  ggplot(., aes(x=FFMC)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of FFMC")
+  
+
+dados %>%
+  ggplot(., aes(x=DMC)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of DMC")
+  
+dados %>%
+  ggplot(., aes(x=DC)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of DC")
+
+
+dados %>%
+  ggplot(., aes(x=ISI)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of ISI")
+
+
+dados %>%
+  ggplot(., aes(x=temp)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of temperature")
+
+dados %>%
+  ggplot(., aes(x=RH)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of Relative Humidity")
+
+dados %>%
+  ggplot(., aes(x=wind)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of wind")
+  
+dados %>%
+  ggplot(., aes(x=rain)) +
+  geom_histogram(aes(y=..density..), colour="#566573", fill="#566573")  +
+  labs(title="Histogram of rain")
+
+
+dados %>%
+  filter(isBurned == 1) %>%
+  ggplot(., aes(x=idm, y=area)) +
+  geom_point(aes(col=as.factor(month_c), size=RH)) +
+  labs(title="Burned areas vs month vs relative humidity")
+
+dados %>%
+  select(-isBurned, -month, -day) %>% 
+  cor() -> cor_dados
 corrplot(cor_dados, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
-
 ```
 
 
-O interesse é modelar áreas que foram queimadas. Analisando o conjunto de dados, notamos que `r round(prop.table(table(dados$isBurned))[1]*100,2)`% é de área não queimada.
+Pelo conjunto de dados ser tão assimétrico em relação à variável resposta, optamos por aplicar o ln(area + 1) para reduzir a variabilidade e poder ter melhores estimativas no modelo. 
 
-Sendo assim, iremos filtrar nosso conjunto de dados selecionando apenas os registros que a coluna **area > 0**.
-
-Outra alternativa seria aplicar alguma transformação na variável resposta, como um log por exemplo. **ainda n coloquei este cenário (log de area) no código**
-
-```{r echo=T, message=FALSE, warning=FALSE, prompt=T}
-
-dados%>%
-   filter(isBurned==1) -> burnedArea
-
-tempdat <- dados
-
-```
 
 # Forward Regression
 
 ```{r echo=TRUE, include=T}
 
-# minimal.model = lm(lnArea ~ 1, data = tempdat)
-# forward.model = MASS::stepAIC(minimal.model,
-#                                scope = list(upper = ~ X + Y + month + temp + RH  + rain + wind,  lower = ~1),
-#                               direction="forward",trace = TRUE)  
-# summary(forward.model)
-# 
-# forward.model2 = MASS::stepAIC(minimal.model,
-#                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
-#                               direction="forward",trace = TRUE)  
-# 
-# 
+tempdat <- dados
 
-
-```
-
-
-# Teste
-
-```{r, echo=F, prompt=F}
-
-rsquared <- data.frame(back = NA, forw = NA, step = NA)
-cota <- 0.05617002
-rsq <- NA
-
-models1 <- list()
-summaryModel1 <- list()
-
-models2 <- list()
-summaryModel2 <- list()
-
-models3 <- list()
-summaryModel3 <- list()
-
-for(i in 1:1000000){
-   set.seed(i)
-   id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
-   sampDados <- dados[id,]   
-   minimal.model = lm(lnArea ~ 1, data = sampDados)
-   forward.model =  MASS::stepAIC(minimal.model,
-                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
-                                           lower = ~1),
+minimal.model = lm(lnArea ~ 1, data = tempdat)
+forward.model = MASS::stepAIC(minimal.model,
+                               scope = list(upper = ~ X + Y + month + temp + RH  + rain + wind,  lower = ~1),
                               direction="forward",trace = TRUE)
-   full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
-   backward.model = MASS::stepAIC(full.model, 
-                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
-                                             lower = ~1),
-                               direction="backward",trace = TRUE)  
-   initial.model = lm(lnArea ~ 1, data = sampDados)
-   stepwise.model = MASS::stepAIC(initial.model, 
-                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  
-                                             lower = ~ 1),
-                               direction="both",trace = TRUE) 
-   
-   model1 <- summary(backward.model)
-   model2 <- summary(forward.model)
-   model3 <- summary(stepwise.model)
-   
-   rsquared[i,1] <- model1$r.squared
-   rsquared[i,2] <- model2$r.squared
-   rsquared[i,3] <- model3$r.squared
-   models1[[i]] <- backward.model
-   models2[[i]] <- forward.model
-   models3[[i]] <- stepwise.model
-   summaryModel1[[i]] <- model1
-   summaryModel2[[i]] <- model2
-   summaryModel3[[i]] <- model3
-}
+summary(forward.model)
 
-par(mfrow=c(3,1))
-plot(rsquared$back, t = "l", ylim = c(0,1))
-plot(rsquared$forw, t = "l", ylim = c(0,1))
-plot(rsquared$step, t = "l", ylim = c(0,1))
-
+forward.model2 = MASS::stepAIC(minimal.model,
+                               scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
+                              direction="forward",trace = TRUE)
 
 ```
+
+
+
 
 
 
@@ -197,20 +221,20 @@ plot(rsquared$step, t = "l", ylim = c(0,1))
 
 ```{r echo=TRUE}
 
-# full.model = lm(lnArea ~ X + Y + month + day + temp + RH + wind + rain, data = tempdat)
-# backward.model = MASS::stepAIC(full.model, 
-#                                 scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
-#                                direction="backward",trace = TRUE)  
-#   
-# 
-# summary(backward.model)
-#   
-# backward.model2 = MASS::stepAIC(full.model, 
-#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
-#                                direction="backward",trace = TRUE)  
-#   
-# 
-# summary(backward.model2)
+full.model = lm(lnArea ~ X + Y + month + day + temp + RH + wind + rain, data = tempdat)
+backward.model = MASS::stepAIC(full.model,
+                                scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
+                               direction="backward",trace = TRUE)
+
+
+summary(backward.model)
+
+backward.model2 = MASS::stepAIC(full.model,
+                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, 
+                                             lower = ~1),
+                               direction="backward",trace = TRUE)
+
+summary(backward.model2)
 ```
 
 # Stepwise Regression
@@ -218,15 +242,76 @@ plot(rsquared$step, t = "l", ylim = c(0,1))
 
 ```{r echo=TRUE}
 
-# initial.model = lm(lnArea ~ 1, data = tempdat)
-# stepwise.model = MASS::stepAIC(initial.model, 
-#                                 scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
-#                                direction="both",trace = TRUE)  
-# # tidy(stepwise.model)initial.model = lm(lnArea ~ 1, data = tempdat)
-# stepwise.model2 = MASS::stepAIC(initial.model, 
-#                                 scope = list(upper = ~  temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
-#                                direction="both",trace = TRUE)  
-# summary(stepwise.model)
-# summary(stepwise.model2)  
+initial.model = lm(lnArea ~ 1, data = tempdat)
+stepwise.model = MASS::stepAIC(initial.model,
+                                scope = list(upper = ~  temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+                                             lower = ~1),
+                               direction="both",trace = TRUE)
+summary(stepwise.model)
+
+```
+
+
+
+
+
+
+```{r, echo=F, prompt=F, include= F}
+
+# rsquared <- data.frame(back = NA, forw = NA, step = NA)
+# cota <- 0.05617002
+# rsq  <- NA
+# 
+# models1 <- list()
+# summaryModel1 <- list()
+# 
+# models2 <- list()
+# summaryModel2 <- list()
+# 
+# models3 <- list()
+# summaryModel3 <- list()
+# 
+# for(i in 1:1000000){
+#    set.seed(257)
+#    id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
+#    sampDados <- dados[id,]   
+#    minimal.model = lm(lnArea ~ 1, data = sampDados)
+#    forward.model =  MASS::stepAIC(minimal.model,
+#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+#                                            lower = ~1),
+#                               direction="forward",trace = TRUE)
+#    full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
+#    backward.model = MASS::stepAIC(full.model, 
+#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+#                                              lower = ~1),
+#                                direction="backward",trace = TRUE)  
+#    initial.model = lm(lnArea ~ 1, data = sampDados)
+#    stepwise.model = MASS::stepAIC(initial.model, 
+#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  
+#                                              lower = ~ 1),
+#                                direction="both",trace = TRUE) 
+#    
+#    model1 <- summary(backward.model)
+#    model2 <- summary(forward.model)
+#    model3 <- summary(stepwise.model)
+#    
+#    rsquared[i,1] <- model1$r.squared
+#    rsquared[i,2] <- model2$r.squared
+#    rsquared[i,3] <- model3$r.squared
+#    models1[[i]] <- backward.model
+#    models2[[i]] <- forward.model
+#    models3[[i]] <- stepwise.model
+#    summaryModel1[[i]] <- model1
+#    summaryModel2[[i]] <- model2
+#    summaryModel3[[i]] <- model3
+#    
+#    print(paste0("=========================================================================== ", i));
+# }
+# 
+# par(mfrow=c(3,1))
+# plot(rsquared$back, t = "l", ylim = c(0,1))
+# plot(rsquared$forw, t = "l", ylim = c(0,1))
+# plot(rsquared$step, t = "l", ylim = c(0,1))
+
 
 ```
