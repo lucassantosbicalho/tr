@@ -1,5 +1,6 @@
 ---
 title: "Análise do dataset Forest Fires com Regressão Linear Múltipla"
+subtitle: "Por Adílio Vitor de Oliveira Júnior e Lucas Santos Bicalho"
 output:
   html_document:
     df_print: paged
@@ -79,10 +80,10 @@ dados %>%
 
 # 2. Análise descritiva
 
-O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados. 
+O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados, que pode ser vista a seguir:
 
 
-```{r, echo=TRUE, include=TRUE}
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 
 x = dados$X
 y = dados$Y
@@ -117,7 +118,7 @@ Notamos que há áreas com maior média de queimada, o que indica que a localiza
 
 ```
 
-Veja que 47,77% dos registros no conjunto de dados são de áreas que não foram queimadas. 
+**47,77%** dos registros no conjunto de dados são de áreas que não foram queimadas. 
 
 ```{r, echo=TRUE, include=TRUE, message=FALSE}
 
@@ -220,12 +221,6 @@ forward.model = MASS::stepAIC(minimal.model,
                               direction="forward",trace = TRUE)
 summary(forward.model)
 
-#forward.model2 = MASS::stepAIC(minimal.model,
-#                               scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
-#                              direction="forward",trace = TRUE)
-
-# Backward Regression
-
 ```
 
 ### Backward
@@ -254,82 +249,21 @@ summary(stepwise.model)
 
 ```
 
-```{r}
-#set.seed(157)
-#id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
-#sampDados <- dados[id,] 
-#full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
-#backward.model3 = MASS::stepAIC(full.model, 
-#scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, lower = ~1), direction="backward",trace = TRUE)
-
-#summary(backward.model3)
-```
-
-
-```{r, echo=F, prompt=F, include= F}
-
-# rsquared <- data.frame(back = NA, forw = NA, step = NA)
-# cota <- 0.05617002
-# rsq  <- NA
-# 
-# models1 <- list()
-# summaryModel1 <- list()
-# 
-# models2 <- list()
-# summaryModel2 <- list()
-# 
-# models3 <- list()
-# summaryModel3 <- list()
-# 
-# for(i in 1:1000000){
-#    set.seed(257)
-#    id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
-#    sampDados <- dados[id,]   
-#    minimal.model = lm(lnArea ~ 1, data = sampDados)
-#    forward.model =  MASS::stepAIC(minimal.model,
-#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
-#                                            lower = ~1),
-#                               direction="forward",trace = TRUE)
-#    full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
-#    backward.model = MASS::stepAIC(full.model, 
-#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
-#                                              lower = ~1),
-#                                direction="backward",trace = TRUE)  
-#    initial.model = lm(lnArea ~ 1, data = sampDados)
-#    stepwise.model = MASS::stepAIC(initial.model, 
-#                                 scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  
-#                                              lower = ~ 1),
-#                                direction="both",trace = TRUE) 
-#    
-#    model1 <- summary(backward.model)
-#    model2 <- summary(forward.model)
-#    model3 <- summary(stepwise.model)
-#    
-#    rsquared[i,1] <- model1$r.squared
-#    rsquared[i,2] <- model2$r.squared
-#    rsquared[i,3] <- model3$r.squared
-#    models1[[i]] <- backward.model
-#    models2[[i]] <- forward.model
-#    models3[[i]] <- stepwise.model
-#    summaryModel1[[i]] <- model1
-#    summaryModel2[[i]] <- model2
-#    summaryModel3[[i]] <- model3
-#    
-#    print(paste0("=========================================================================== ", i));
-# }
-# 
-# par(mfrow=c(3,1))
-# plot(rsquared$back, t = "l", ylim = c(0,1))
-# plot(rsquared$forw, t = "l", ylim = c(0,1))
-# plot(rsquared$step, t = "l", ylim = c(0,1))
-
-
-```
-
 # 4. Análise dos resultados
 
-Após várias tentativas, o melhor modelo encontrado foi o backward, obtendo um R² de 0,0662, o que indica que o modelo encontrado consegue explicar 6,2% da variabilidade da variável resposta. As variáveis finais selecionadas pelo modelo foram: X, temp, wind, DMC, month e DC. 
+Após várias tentativas, o melhor modelo encontrado pelo método backward, obtendo um R² de 0,0662, o que indica que o modelo encontrado consegue explicar 6,2% da variabilidade da variável resposta. As variáveis finais selecionadas pelo modelo foram: X, temp, wind, DMC, month e DC. 
 
-A respeito das variáveis selecionadas, a que se mostrou mais relevante foi a "month", onde percebemos uma influência forte dessa variável quando ela possui o valor "dec", o que seriam o mês de dezembro.
+As variáveis significativas à pelo menos 10% de significância para o modelo foram X, temp, DMC e monthdec (mês de dez). As demais não foram significativas ao modelo.
+A interpretação com relação à variável resposta ln(area + 1) pode não ter significado paupável devido à transformação logarítmica aplicada à variável, contudo, isso não impossibilita a percepção das variáveis que mais impactam para o comportamento estudado, que são as áreas queimadas.
 
-Esse modelo obteve um erro residual padrão muito grande, se comparado ao intercepto encontrado, o que indica uma porcentagem de erro bastante alta.
+## Interpretações das variáveis significativas para o modelo:
+
+- O intercepto é de 0,1851, ou seja, o valor esperado para ln(area + 1) caso os coeficientes do modelo sejam zero.
+
+- Mantendo as demais variáveis constantes, ln(area + 1) aumenta, em média, 0,0471 unidades para cada incremento da variável X.
+
+- Mantendo as demais variáveis constantes, ln(area + 1) aumenta, em média, 0,0347 unidades para 1º na temperatura.
+
+- Mantendo as demais variáveis constantes, ln(area + 1) aumenta, em média, 0041 unidades para cada uma unidade incrementada no índice DMC.
+
+- Mantendo as demais variáveis constantes, ln(area + 1) aumenta, em média, 2.20 unidades se o mês for dezembro.
