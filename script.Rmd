@@ -7,24 +7,36 @@ output:
 
 
 # Contexto dos dados
-Os dados são sobre queimadas 
-link: https://archive.ics.uci.edu/ml/datasets/Forest+Fires.
 
-   1. X - x-axis spatial coordinate within the Montesinho park map: 1 to 9
-   2. Y - y-axis spatial coordinate within the Montesinho park map: 2 to 9
-   3. month - month of the year: "jan" to "dec" 
-   4. day - day of the week: "mon" to "sun"
-   5. FFMC - FFMC index from the FWI system: 18.7 to 96.20
-   6. DMC - DMC index from the FWI system: 1.1 to 291.3 
-   7. DC - DC index from the FWI system: 7.9 to 860.6 
-   8. ISI - ISI index from the FWI system: 0.0 to 56.10
-   9. temp - temperature in Celsius degrees: 2.2 to 33.30
-   10. RH - relative humidity in %: 15.0 to 100
-   11. wind - wind speed in km/h: 0.40 to 9.40 
-   12. rain - outside rain in mm/m2 : 0.0 to 6.4 
-   13. area - the burned area of the forest (in ha): 0.00 to 1090.84 
-   (this output variable is very skewed towards 0.0, thus it may make
-    sense to model with the logarithm transform). 
+O conjunto de dados "Forest Fires" contém dados e indicadores a respeito da área próxima e compreendida pelo Parque Natural de Montesinho, em Bragança, Portugal. Parte dessa área foi atingida por incêndios florestais ao logos dos três anos da amostragem dos dados (entre Janeiro de 2000 e Dezembro de 2003), e tentaremos desenvolver um modelo que relacione as variáveis do dataset com a quantidade de área atingida pelos incêndios.
+As variáveis que compôe o conjunto de dados são:
+
+1. X: Coordenada x espacial dentro do Parque Montesinho (entre 1 e 9).
+2. Y: Coordenada y espacial dentro do Parque Montesinho (entre 2 e 9).
+3. Month: Mês do ano (de "jan" a "dec").
+4. Day: Dia da semana (de "mon" a "sun").
+5. Temp: A temperatura externa em ºC (entre 2.2 e 33.3).
+6. RH: Umidade relativa externa em % (entre 15.0 e 100).
+7. Wind: A velocidade do vento em km/h (entre 0.4 e 9.4).
+8. Rain: A quantidade de chuva em mm/m^2 acumulada nos 30 minutros antes da medição (entre 0 e 6.4).
+9. FFMC: Quantidade de umidade em galhos, caules e outros componentes da flora com diâmetro menor do que 1 cm (entre 18.7 e 96.20).
+10. DMC: Quantidade de umidade em camadas orgânicas pouco compactadas com profundidade entre 5 e 10 centímetros (entre 1.1 e 291.3).
+11. DC: Quantidade de umidade em camadas orgânicas compactadas com profundidade entre 10 e 20 centímetros (entre 7.9 e 860.6).
+12. ISI: Combinação do indicador FFMC com a velocidade do vento.
+13. Area: Quantidade de área queimada em hectares (entre 0 e 1090.84).	
+
+	As variáveis FFMC, DMC, DC e ISI pertencem ao FWI - Canadian Fire Weather Index. O FWI tem como objetivo avaliar o risco de incêndios florestais dados os indicadores calculados. Segue uma breve explicação do significado desses quatro indicadores:
+
+FFMC: É interpretado como sendo o indicador do "combustível inicial" para o início dos incêndios.
+
+DMC: É interpretado como a probabilidade da ignição de fogo por descargas atmosféricas.
+
+DC: É interpretado como a condição de umidade a "longo prazo" da vegetação e está relacionado com os incêndios graves, que são mais difíceis de serem controlados.
+
+ISI: É interpretado como o indicador de propagação do fogo.
+
+Esse conjunto de dados está disponível em: https://archive.ics.uci.edu/ml/datasets/Forest+Fires.
+
 
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
@@ -97,6 +109,7 @@ image.plot(grid.list, main = "Média de área queimada")
 ```
 
 Notamos que há áreas com maior média de queimada, o que indica que a localização X, Y pode ser um fator relevante na variável área queimada. É importante notar que os quadrantes que estão em branco, como por exemplo o (2, 8) não significam que não houve queimada, mas sim que são áreas que não fazem parte do conjunto de dados analisado.
+000
 # Análise exploratória
 
 ```{r, echo=TRUE, include=TRUE}
@@ -213,9 +226,6 @@ forward.model2 = MASS::stepAIC(minimal.model,
 
 
 
-
-
-
 # Backward Regression
 
 
@@ -229,9 +239,9 @@ backward.model = MASS::stepAIC(full.model,
 
 summary(backward.model)
 
+full.model = lm(lnArea ~ temp + wind + X + DMC + month + DC, data = tempdat)
 backward.model2 = MASS::stepAIC(full.model,
-                                scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, 
-                                             lower = ~1),
+                                scope = list(upper = ~ temp + wind + X + DMC + month + DC, lower = ~1),
                                direction="backward",trace = TRUE)
 
 summary(backward.model2)
