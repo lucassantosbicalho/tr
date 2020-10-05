@@ -1,12 +1,12 @@
 ---
-title: "R Notebook"
+title: "Análise do dataset Forest Fires com Regressão Linear Múltipla"
 output:
   html_document:
     df_print: paged
 ---
 
 
-# Contexto dos dados
+# 1. Contexto dos dados
 
 O conjunto de dados "Forest Fires" contém dados e indicadores a respeito da área próxima e compreendida pelo Parque Natural de Montesinho, em Bragança, Portugal. Parte dessa área foi atingida por incêndios florestais ao logos dos três anos da amostragem dos dados (entre Janeiro de 2000 e Dezembro de 2003), e tentaremos desenvolver um modelo que relacione as variáveis do dataset com a quantidade de área atingida pelos incêndios.
 As variáveis que compôe o conjunto de dados são:
@@ -18,7 +18,7 @@ As variáveis que compôe o conjunto de dados são:
 5. Temp: A temperatura externa em ºC (entre 2.2 e 33.3).
 6. RH: Umidade relativa externa em % (entre 15.0 e 100).
 7. Wind: A velocidade do vento em km/h (entre 0.4 e 9.4).
-8. Rain: A quantidade de chuva em mm/m^2 acumulada nos 30 minutros antes da medição (entre 0 e 6.4).
+8. Rain: A quantidade de chuva em mm/m² acumulada nos 30 minutros antes da medição (entre 0 e 6.4).
 9. FFMC: Quantidade de umidade em galhos, caules e outros componentes da flora com diâmetro menor do que 1 cm (entre 18.7 e 96.20).
 10. DMC: Quantidade de umidade em camadas orgânicas pouco compactadas com profundidade entre 5 e 10 centímetros (entre 1.1 e 291.3).
 11. DC: Quantidade de umidade em camadas orgânicas compactadas com profundidade entre 10 e 20 centímetros (entre 7.9 e 860.6).
@@ -77,7 +77,7 @@ dados %>%
 ```
 
 
-# Análise descritiva
+# 2. Análise descritiva
 
 O material [Applied Multivariate Analysis, Darren Homrighausen, PhD](https://darrenho.github.io/AMA/regression4example.pdf) utiliza um mecanismo para visualizar a média das áreas queimadas, conforme a localização X e Y no conjunto de dados. 
 
@@ -109,8 +109,8 @@ image.plot(grid.list, main = "Média de área queimada")
 ```
 
 Notamos que há áreas com maior média de queimada, o que indica que a localização X, Y pode ser um fator relevante na variável área queimada. É importante notar que os quadrantes que estão em branco, como por exemplo o (2, 8) não significam que não houve queimada, mas sim que são áreas que não fazem parte do conjunto de dados analisado.
-000
-# Análise exploratória
+
+# 3. Análise exploratória
 
 ```{r, echo=TRUE, include=TRUE}
 (prop.table(table(dados$isBurned)))
@@ -119,7 +119,7 @@ Notamos que há áreas com maior média de queimada, o que indica que a localiza
 
 Veja que 47,77% dos registros no conjunto de dados são de áreas que não foram queimadas. 
 
-```{r, echo=TRUE, include=TRUE}
+```{r, echo=TRUE, include=TRUE, message=FALSE}
 
 dados %>%
   ggplot(., aes(x=area)) +
@@ -205,8 +205,10 @@ corrplot(cor_dados, type = "upper", order = "hclust",
 
 Pelo conjunto de dados ser tão assimétrico em relação à variável resposta, optamos por aplicar o ln(area + 1) para reduzir a variabilidade e poder ter melhores estimativas no modelo. 
 
+## Modelagem
 
-# Forward Regression
+
+### Forward
 
 ```{r echo=TRUE, include=T}
 
@@ -214,56 +216,54 @@ tempdat <- dados
 
 minimal.model = lm(lnArea ~ 1, data = tempdat)
 forward.model = MASS::stepAIC(minimal.model,
-                               scope = list(upper = ~ X + Y + month + temp + RH  + rain + wind,  lower = ~1),
+                               scope = list(upper = ~  X + temp + RH + wind + DMC + month + Y + FFMC + day + ISI + rain + DC,  lower = ~1),
                               direction="forward",trace = TRUE)
 summary(forward.model)
 
-forward.model2 = MASS::stepAIC(minimal.model,
-                               scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
-                              direction="forward",trace = TRUE)
+#forward.model2 = MASS::stepAIC(minimal.model,
+#                               scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,  lower = ~1),
+#                              direction="forward",trace = TRUE)
+
+# Backward Regression
 
 ```
 
-
-
-# Backward Regression
+### Backward
 
 
 ```{r echo=TRUE}
 
-full.model = lm(lnArea ~ X + Y + month + day + temp + RH + wind + rain, data = tempdat)
+full.model = lm(lnArea ~  X + temp + RH + wind + DMC + month + Y + FFMC + day + ISI + rain + DC, data = tempdat)
 backward.model = MASS::stepAIC(full.model,
-                                scope = list(upper = ~ X + Y + month + day + temp + RH + wind + rain,  lower = ~1),
+                                scope = list(upper = ~ X + temp + RH + wind + DMC + month + Y + FFMC + day + ISI + rain + DC,  lower = ~1),
                                direction="backward",trace = TRUE)
-
-
 summary(backward.model)
-
-full.model = lm(lnArea ~ temp + wind + X + DMC + month + DC, data = tempdat)
-backward.model2 = MASS::stepAIC(full.model,
-                                scope = list(upper = ~ temp + wind + X + DMC + month + DC, lower = ~1),
-                               direction="backward",trace = TRUE)
-
-summary(backward.model2)
 ```
 
-# Stepwise Regression
+### Stepwise 
 
 
 ```{r echo=TRUE}
 
 initial.model = lm(lnArea ~ 1, data = tempdat)
 stepwise.model = MASS::stepAIC(initial.model,
-                                scope = list(upper = ~  temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC,
+                                scope = list(upper = ~   X + temp + RH + wind + DMC + month + Y + FFMC + day + ISI + rain + DC,
                                              lower = ~1),
                                direction="both",trace = TRUE)
 summary(stepwise.model)
 
 ```
 
+```{r}
+#set.seed(157)
+#id <- sample(1:nrow(tempdat), size = trunc(runif(1,.7,1)*nrow(tempdat)),replace = F)
+#sampDados <- dados[id,] 
+#full.model = lm(lnArea ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, data = sampDados)
+#backward.model3 = MASS::stepAIC(full.model, 
+#scope = list(upper = ~ temp + RH + wind + X + Y + DMC + month + FFMC + day + ISI + rain + DC, lower = ~1), direction="backward",trace = TRUE)
 
-
-
+#summary(backward.model3)
+```
 
 
 ```{r, echo=F, prompt=F, include= F}
@@ -325,3 +325,11 @@ summary(stepwise.model)
 
 
 ```
+
+# 4. Análise dos resultados
+
+Após várias tentativas, o melhor modelo encontrado foi o backward, obtendo um R² de 0,0662, o que indica que o modelo encontrado consegue explicar 6,2% da variabilidade da variável resposta. As variáveis finais selecionadas pelo modelo foram: X, temp, wind, DMC, month e DC. 
+
+A respeito das variáveis selecionadas, a que se mostrou mais relevante foi a "month", onde percebemos uma influência forte dessa variável quando ela possui o valor "dec", o que seriam o mês de dezembro.
+
+Esse modelo obteve um erro residual padrão muito grande, se comparado ao intercepto encontrado, o que indica uma porcentagem de erro bastante alta.
