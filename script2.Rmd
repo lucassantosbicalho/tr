@@ -10,10 +10,12 @@ output:
 
 # 1. Contexto dos dados
 
-Os dados estão disponíveis em https://archive.ics.uci.edu/ml/datasets/Taiwanese+Bankruptcy+Prediction.
+Os dados estão disponíveis em https://archive.ics.uci.edu/ml/datasets/student+performance.
+Objetivo é modelar uma regressão logística para os alunos da disciplina de matemática, no teste final G3.
+A variável G3 foi recodificada em uma nova, chamada G3_final, onde se a nota obtida pelo aluno for maior que 10, então G3_Final recebe 1, caso contrário recebe 0.
 
-
-### Codigo do professor
+### Código fonte
+O código abaixo foi obtido na nota de aula 20.
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -23,80 +25,51 @@ library(nnet)
 library(caret)
 library(ROCit)
 
-dat =  read.csv2("student-por.csv", header = TRUE)
+dados <- read.csv2("student-mat.csv", header = TRUE)
+
+dados <- mutate(dados,
+            G1_final = ifelse(G1 <= 10, 0, 1),
+            G2_final =  ifelse(G2 <= 10, 0, 1),
+            G3_final = ifelse(G3 <= 10, 0, 1)) %>% 
+          select(-G1) %>% select(-G2) %>% select(-G3) 
+
+names(dados)
 
 
-
-dat = mutate(dat,
-            G1_final = ifelse(G1 <= 10, 0, 1
-            ),
-            G2_final =  ifelse(G2 <= 10, 0, 1
-            ),
-            G3_final = ifelse(G3 <= 10, 0, 1
-            )) %>% select(-G1) %>% select(-G2) %>% select(-G3) 
-
-names(dat)
+set.seed(1)
+dat_idx <- sample(nrow(dados), round(0.7*nrow(dados)))
+dat_trn <- dados[dat_idx, ]
+dat_tst <- dados[-dat_idx, ]
 
 
-set.seed(42)
-dat_idx = sample(nrow(dat), round(0.7*nrow(dat)))
-dat_trn = dat[dat_idx, ]
-dat_tst = dat[-dat_idx, ]
-
-
-full.model = glm(G3_final~ ., data = dat_trn, 
+full.model <- glm(G3_final~ ., data = dat_trn, 
                  family="binomial")
 
 
 backward.model = MASS::stepAIC(full.model,
                                scope = list(upper = ~.,  lower = ~1),
-                              family="binomial",
-                              direction="backward",trace = FALSE)
+                               family="binomial",
+                               direction="both", trace = FALSE)
 
 summary(backward.model)
 
 #Testing data
-score2 = predict(backward.model, type = "response",newdata = dat_tst) 
-obs2 = dat_tst$G3_final
-## Warning: package 'ROCit' was built under R version 3.5.2
+score2 <- predict(backward.model, type = "response", newdata = dat_tst) 
+obs2 <- dat_tst$G3_final
+
 ROCit_obj2 <- rocit(score=score2,class=obs2)
-plot(ROCit_obj2)
-```
-
-
-# 2. Análise descritiva
-
-
-
-```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
-
 
 
 ```
 
-
-
-# 3. Modelagem
-
-```{r, echo=TRUE, include=TRUE, message=FALSE}
-
-
-
-```
-
-
-### Backward
-
-
-```{r echo=TRUE}
-
-
-
-```
 
 # 4. Análise dos resultados
 
 ### Curva ROC
+
+```{r}
+plot(ROCit_obj2)
+```
 
 Interpretar curva ROC
 
