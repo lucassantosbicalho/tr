@@ -1,0 +1,108 @@
+---
+title: "Ajuste de regressão logística - Trabalho 2"
+subtitle: Por Adílio Vitor de Oliveira Júnior e Lucas Santos Bicalho
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+# 1. Contexto dos dados
+
+Os dados estão disponíveis em https://archive.ics.uci.edu/ml/datasets/Taiwanese+Bankruptcy+Prediction.
+
+
+### Codigo do professor
+
+```{r message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(glmnet)
+library(nnet)
+library(caret)
+library(ROCit)
+
+dat =  read.csv2("student-por.csv", header = TRUE)
+
+
+
+dat = mutate(dat,
+            G1_final = ifelse(G1 <= 10, 0, 1
+            ),
+            G2_final =  ifelse(G2 <= 10, 0, 1
+            ),
+            G3_final = ifelse(G3 <= 10, 0, 1
+            )) %>% select(-G1) %>% select(-G2) %>% select(-G3) 
+
+names(dat)
+
+
+set.seed(42)
+dat_idx = sample(nrow(dat), round(0.7*nrow(dat)))
+dat_trn = dat[dat_idx, ]
+dat_tst = dat[-dat_idx, ]
+
+
+full.model = glm(G3_final~ ., data = dat_trn, 
+                 family="binomial")
+
+
+backward.model = MASS::stepAIC(full.model,
+                               scope = list(upper = ~.,  lower = ~1),
+                              family="binomial",
+                              direction="backward",trace = FALSE)
+
+summary(backward.model)
+
+#Testing data
+score2 = predict(backward.model, type = "response",newdata = dat_tst) 
+obs2 = dat_tst$G3_final
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj2 <- rocit(score=score2,class=obs2)
+plot(ROCit_obj2)
+```
+
+
+# 2. Análise descritiva
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+
+
+```
+
+
+
+# 3. Modelagem
+
+```{r, echo=TRUE, include=TRUE, message=FALSE}
+
+
+
+```
+
+
+### Backward
+
+
+```{r echo=TRUE}
+
+
+
+```
+
+# 4. Análise dos resultados
+
+### Curva ROC
+
+Interpretar curva ROC
+
+### Matriz de Confusão
+
+### Medidas Perfomances
+
+Interpretar recall e precision
+
