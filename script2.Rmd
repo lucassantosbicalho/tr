@@ -2,9 +2,9 @@
 title: "Ajuste de regressão logística - Trabalho 2"
 subtitle: Por Adílio Vitor de Oliveira Júnior e Lucas Santos Bicalho
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 
@@ -73,15 +73,15 @@ ROCit_obj2 <- rocit(score=score2,class=obs2)
 plot(ROCit_obj2)
 ```
 
-**Interpretar curva ROC**
+  Como pudemos observar na curva ROC, o modelo desenvolvido apresentou valores altos de sensibilidade para baixos valores de especificidade. Como nossa intenção é modelar os alunos que serão aprovados (sensibilidade), esse modelo conseguiu uma boa performance.
+
+## 3.2 Cutoff
 
 ```{r}
 optimal_cutoff = ROCit_obj2$Cutoff[which.max(ROCit_obj2$TPR - ROCit_obj2$FPR)]
 ```
 
-## 3.2 Optimal cutoff = `r optimal_cutoff`
-
-**Interpretar curva cutoff**
+Nós obtivemos um valor de cutoff ótimo de `r optimal_cutoff`, o que indica que a melhor acurácia do modelo foi obtida quando 55.81% das amostras eram de alunos que foram aprovados.
 
 ## 3.3 Matriz de Confusão
 
@@ -93,11 +93,11 @@ train_con_mat <- confusionMatrix(train_tab, positive = "1")
 train_con_mat$table
 ```
 
-**Interpretar matriz de confusão**
+Na matriz de confusão, podemos ver que o modelo obteve 55 verdadeiros positivos e 6 falsos positivos. Esse modelo também obteve 7 falsos negativos e 51 verdadeiros negativos.
 
-## 3.4 Accuracy = `r train_con_mat$overall["Accuracy"]`
+## 3.4 Accuracy
 
-**Interpretar acurácia**
+Para esse modelo, nós obtivemos uma acurácia de `r train_con_mat$overall["Accuracy"]`, o que indica que o modelo predisse corretamente em 89.07% dos casos.
 
 ## 3.5 Overall
 
@@ -105,4 +105,8 @@ train_con_mat$table
 train_con_mat$byClass
 ```
 
-**Interpretar pos pred value, recall, F1**
+Precision: É a relacação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos positivos. Como obtivemos um valor de 0.9016, significa que em 90.16% das predições de positivo, o modelo predisse corretamente.
+
+Recall: É a relação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos negativos. Como obtivemos um valor de 0.88709, significa que o modelo "encontrou" os verdadeiros positivos e os predisse corretamente em 88.71% dos casos.
+
+F1: Também conhecido como "valor harmônico", é uma relação com os valores de Precision e Recall. Quanto mais próximo de 1, melhor é o modelo, pois significa uma menor presença de falsos positivos e falsos negativos. No nosso modelo, obtivemos um F1 de 0.8943.
