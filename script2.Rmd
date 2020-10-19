@@ -2,9 +2,9 @@
 title: "Ajuste de regressão logística - Trabalho 2"
 subtitle: Por Adílio Vitor de Oliveira Júnior e Lucas Santos Bicalho
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 
@@ -71,9 +71,10 @@ ROCit_obj2 <- rocit(score=score2,class=obs2)
 
 ```{r}
 plot(ROCit_obj2)
+
 ```
 
-  Como pudemos observar na curva ROC, o modelo desenvolvido apresentou valores altos de sensibilidade para baixos valores de especificidade. Como nossa intenção é modelar os alunos que serão aprovados (sensibilidade), esse modelo conseguiu uma boa performance.
+  Como pudemos observar na curva ROC, o modelo desenvolvido apresentou valores altos de sensibilidade para baixos valores de especificidade. Como nossa intenção é modelar os alunos que serão aprovados (sensibilidade), esse modelo conseguiu uma boa performance. A *AUC* do modelo é de `r round(ROCit_obj2$AUC,4)*100`%, confirmando a boa indicativa de performance do modelo.
 
 ## 3.2 Cutoff
 
@@ -81,7 +82,7 @@ plot(ROCit_obj2)
 optimal_cutoff = ROCit_obj2$Cutoff[which.max(ROCit_obj2$TPR - ROCit_obj2$FPR)]
 ```
 
-Nós obtivemos um valor de cutoff ótimo de `r optimal_cutoff`, o que indica que a melhor acurácia do modelo foi obtida quando 55.81% das amostras eram de alunos que foram aprovados.
+Nós obtivemos um valor de *cutoff* ótimo de `r optimal_cutoff`, o que indica que a melhor acurácia do modelo foi obtida quando 55.81% das amostras eram de alunos que foram aprovados.
 
 ## 3.3 Matriz de Confusão
 
@@ -109,4 +110,4 @@ Precision: É a relacação entre verdadeiros positivos e a soma de verdadeiros 
 
 Recall: É a relação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos negativos. Como obtivemos um valor de 0.88709, significa que o modelo "encontrou" os verdadeiros positivos e os predisse corretamente em 88.71% dos casos.
 
-F1: Também conhecido como "valor harmônico", é uma relação com os valores de Precision e Recall. Quanto mais próximo de 1, melhor é o modelo, pois significa uma menor presença de falsos positivos e falsos negativos. No nosso modelo, obtivemos um F1 de 0.8943.
+F1: Também conhecido como "valor harmônico", é uma média harmônica entre Precision e Recall. Quanto mais próximo de 1, melhor é o modelo, pois significa uma menor presença de falsos positivos e falsos negativos. No nosso modelo, obtivemos um F1 de 0.8943.
