@@ -74,7 +74,7 @@ plot(ROCit_obj2)
 
 ```
 
-  Como pudemos observar na curva ROC, o modelo desenvolvido apresentou valores altos de sensibilidade para baixos valores de especificidade. Como nossa intenção é modelar os alunos que serão aprovados (sensibilidade), esse modelo conseguiu uma boa performance. A *AUC* do modelo é de `r round(ROCit_obj2$AUC,4)*100`%, confirmando a boa indicativa de performance do modelo.
+Como pudemos observar na curva ROC, o modelo desenvolvido apresentou valores altos de sensibilidade para baixos valores de especificidade. Como nossa intenção é modelar os alunos que serão aprovados (sensibilidade), esse modelo conseguiu uma boa performance. A *AUC* do modelo é de `r round(ROCit_obj2$AUC,4)*100`%, confirmando a boa indicativa de performance do modelo.
 
 ## 3.2 Cutoff
 
@@ -83,7 +83,7 @@ optimal_cutoff = ROCit_obj2$Cutoff[which.max(ROCit_obj2$TPR - ROCit_obj2$FPR)]
 ```
 
 Nós obtivemos um valor de *cutoff* ótimo de `r optimal_cutoff`, o que indica que a melhor acurácia do modelo foi obtida quando 55.81% das amostras eram de alunos que foram aprovados.
-=
+
 ## 3.3 Matriz de Confusão
 
 ```{r}
