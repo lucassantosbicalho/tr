@@ -96,7 +96,7 @@ train_con_mat$table
 
 ```
 
-Na matriz de confusão, podemos ver que o modelo obteve 55 verdadeiros positivos e 6 falsos positivos. Esse modelo também obteve 7 falsos negativos e 51 verdadeiros negativos.
+Na matriz de confusão, podemos ver que o modelo obteve 51 verdadeiros positivos e 7 falsos positivos. Esse modelo também obteve 6 falsos negativos e 55 verdadeiros negativos.
 
 ## 3.4 Accuracy
 
@@ -108,8 +108,8 @@ Para esse modelo, nós obtivemos uma acurácia de `r train_con_mat$overall["Accu
 train_con_mat$byClass
 ```
 
-Precision: É a relacação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos positivos. Como obtivemos um valor de 0.9016, significa que em 90.16% das predições de positivo, o modelo predisse corretamente.
+Precision: É a relacação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos positivos. Como obtivemos um valor de 0.8793, significa que em 87.93% das predições de positivo, o modelo predisse corretamente.
 
-Recall: É a relação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos negativos. Como obtivemos um valor de 0.88709, significa que o modelo "encontrou" os verdadeiros positivos e os predisse corretamente em 88.71% dos casos.
+Recall: É a relação entre verdadeiros positivos e a soma de verdadeiros positivos com falsos negativos. Como obtivemos um valor de 0.8947, significa que o modelo "encontrou" os verdadeiros positivos e os predisse corretamente em 89.47% dos casos.
 
 F1: Também conhecido como "valor harmônico", é uma média harmônica entre Precision e Recall. Quanto mais próximo de 1, melhor é o modelo, pois significa uma menor presença de falsos positivos e falsos negativos. No nosso modelo, obtivemos um F1 de 0.8943.
