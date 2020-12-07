@@ -1,0 +1,186 @@
+
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+library(tidyverse)
+library(tidymodels)   # packages for modeling and statistical analysis
+library(tune)         # For hyperparemeter tuning
+library(workflows)    # streamline process
+library(tictoc)       # for timimg
+library(ranger)
+library(pROC)
+library(ROCit)
+
+
+dat =  read.csv2("student-mat.csv", header = TRUE)
+
+dat = mutate(dat,
+            G1_final = ifelse(G1 <= 10, 0, 1
+            ),
+            G2_final =  ifelse(G2 <= 10, 0, 1
+            ),
+            G3_final = ifelse(G3 <= 10, 0, 1
+            )) %>% select(-G1) %>% select(-G2) %>% select(-G3) %>% 
+  mutate(Medu = factor(Medu), 
+         Fedu = factor(Fedu),
+         famrel = factor(famrel),
+         freetime = factor(freetime),
+         goout = factor(goout),
+         Dalc = factor(Dalc),
+         Walc =factor(Walc),
+         health = factor(health) ,
+         G1_final = factor(G1_final),
+         G2_final = factor(G2_final),
+         G3_final = factor(G3_final))
+
+#names(dat)
+
+```
+
+##Checking the possibility of class imbalance
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+round(prop.table(table(dat$G3_final)), 2)
+
+
+```
+
+- Como podemos perceber, esse dataset está balanceado 
+
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+set.seed(1500)
+train_test_split_data <- initial_split(dat)
+data_in_scope_train <- training(train_test_split_data)
+data_in_scope_test <-  testing(train_test_split_data)
+folds <- vfold_cv(data_in_scope_train, v = 5, repeats = 2)
+
+
+#  Pre-Processing the data with{recipes}
+set.seed(1500)
+rec <- recipe(G3_final ~., data = data_in_scope_train) %>%   
+step_center(all_numeric(), -all_outcomes())%>%  
+step_scale(all_numeric(), -all_outcomes())  %>%     
+step_dummy(all_nominal(), -G3_final)  
+    
+
+trained_rec<-  prep(rec, training = data_in_scope_train, retain = TRUE)
+train_data <- as.data.frame(juice(trained_rec))
+test_data  <- as.data.frame( bake(trained_rec, new_data = data_in_scope_test))
+
+#glimpse(train_data)
+
+```
+
+
+###Hyperparameter tuning via Grid Search
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+model_def_to_tune <- rand_forest(mode = "classification", mtry = tune(), 
+                                 trees = tune(),       
+                                 min_n =  tune()) %>%
+set_engine("ranger") 
+
+model_wflow <-
+  workflow() %>%
+  add_model(model_def_to_tune) %>%
+  add_recipe(rec)
+ 
+HP_set <- parameters(model_wflow) 
+without_output <- select(data_in_scope_train, -G3_final)
+HP_set <- finalize(HP_set, without_output)
+
+grid_parameters = expand.grid(mtry = seq(2,4,8),
+                              trees = 3000,
+                              min_n = c(2,5))
+
+
+set.seed(1500)
+tic() 
+results_grid_search <- tune_grid(
+  model_wflow,                       # Model workflow defined above
+  resamples = folds,                 # Resamples defined obove
+  param_info = HP_set,               # HP Parmeter to be tuned (defined above) 
+  grid = grid_parameters,                         # number of candidate parameter sets to be created automatically
+  metrics = metric_set(roc_auc),     # metric
+  control = control_grid(save_pred = TRUE, verbose = TRUE) # controle the tuning process
+)
+results_grid_search
+
+
+toc()
+
+
+```
+
+
+---
+class: middle
+
+
+###Select best HP combination:
+
+```{r, warning=FALSE, message=FALSE, eval = FALSE}
+
+# Select best HP combination
+best_HP_grid_search <- select_best(results_grid_search, metric = "roc_auc", maximize = TRUE)
+
+# Finalize recipe
+final_rec <- rec %>% finalize_recipe(best_HP_grid_search) %>% prep()
+
+final_model <- model_def_to_tune %>% finalize_model(best_HP_grid_search) %>%
+fit(G3_final ~ ., data = juice(final_rec))
+
+df_train_after_tuning <- as.data.frame(juice(final_rec)) 
+df_test_after_tuning <- as.data.frame(bake(final_rec, new_data = data_in_scope_test))
+
+
+model_class = predict(final_model, new_data = df_test_after_tuning) %>% pull(.pred_class)
+
+
+model_prob  = predict(final_model, new_data = df_test_after_tuning, type = "prob") %>% pull(.pred_1)
+
+results_ = tibble(
+  G3_final = df_test_after_tuning$G3_final,
+  model_class = model_class,
+  model_prob = model_prob)
+
+
+```
+
+---
+class: middle
+
+##Results Grid Search process
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+
+
+confusion_matrix <- conf_mat(results_, truth= G3_final, model_class)
+ROCit_obj <- rocit(score=results_$model_prob,class=results_$G3_final)
+confusion_matrix 
+```
+
+
+####AUC
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+ROCit_obj$AUC
+
+```
+
+---
+class: middle
+
+##ROC Curve
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+
+plot(ROCit_obj)
+
+
+```
